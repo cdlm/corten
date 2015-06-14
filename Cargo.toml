@@ -2,3 +2,6 @@
 name = "corten"
 version = "0.1.0"
 authors = ["Damien Pollet <damien.pollet@gmail.com>"]
+
+[lib]
+name = "corten"
