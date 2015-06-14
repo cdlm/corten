@@ -35,6 +35,17 @@ mod tests {
     fn pops_as_pushed() {
         let mut interpreter = Interpreter::<i32>::new();
         interpreter.push(42);
-        assert_eq!(Some(42), interpreter.pop())
+        assert_eq!(Some(42), interpreter.pop());
+        assert_eq!(None, interpreter.pop())
+    }
+
+    #[test]
+    fn pops_in_reverse_order() {
+        let mut interpreter = Interpreter::<i32>::new();
+        interpreter.push(42);
+        interpreter.push(51);
+        assert_eq!(Some(51), interpreter.pop());
+        assert_eq!(Some(42), interpreter.pop());
+        assert_eq!(None, interpreter.pop())
     }
 }
