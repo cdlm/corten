@@ -16,10 +16,37 @@ impl<T> Interpreter<T> {
     }
 }
 
+struct Word<'a, T> {
+    entry: &'a Fn(&mut Interpreter<T>) -> (),
+}
+
+impl<'a, T> Word<'a, T> {
+    fn eval_within(&self, i: &mut Interpreter<T>) {
+        (self.entry)(i)
+    }
+}
+
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use super::Word;
+
+    #[test]
+    fn plus_word() {
+        let mut interpreter = Interpreter::<i32>::default();
+        let plus = Word {
+            entry: &|i| {
+                match (i.pop(), i.pop()) {
+                    (Some(b), Some(a)) => { i.push(a + b) }
+                    _ => panic!("Stack underflow")
+                }}
+        };
+        interpreter.push(42);
+        interpreter.push(51);
+        plus.eval_within(&mut interpreter);
+        assert_eq!(Some(93), interpreter.pop())
+    }
 
     #[test]
     fn pops_nothing() {
