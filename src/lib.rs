@@ -37,10 +37,10 @@ mod tests {
         let mut interpreter = Interpreter::<i32>::default();
         let plus = Word {
             entry: &|i| {
-                match (i.pop(), i.pop()) {
-                    (Some(b), Some(a)) => { i.push(a + b) }
-                    _ => panic!("Stack underflow")
-                }}
+                if let (Some(b), Some(a)) = (i.pop(), i.pop()) {
+                    i.push(a + b)
+                } else { panic!("Stack underflow") }
+            }
         };
         interpreter.push(42);
         interpreter.push(51);
