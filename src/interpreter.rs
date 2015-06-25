@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 type Stack<T> = Vec<T>;
 
 #[derive(Default)]
@@ -5,7 +7,8 @@ pub struct Interpreter<T> {
     data_stack: Stack<T>,
 }
 
-impl<T> Interpreter<T> {
+impl<T> Interpreter<T>
+    where T: FromStr {
 
     fn push(&mut self, value: T) {
         self.data_stack.push(value)
@@ -13,6 +16,12 @@ impl<T> Interpreter<T> {
 
     fn pop(&mut self) -> Option<T> {
         self.data_stack.pop()
+    }
+
+    fn eval_token(&mut self, token: &str) {
+        if let Ok(literal) = token.parse::<T>() {
+            self.push(literal);
+        }
     }
 }
 
@@ -50,6 +59,13 @@ mod tests {
         interpreter.push(51);
         plus.eval_within(&mut interpreter);
         assert_eq!(Some(93), interpreter.pop())
+    }
+
+    #[test]
+    fn push_literal() {
+        let mut interpreter = Interpreter::<i32>::default();
+        interpreter.eval_token("42");
+        assert_eq!(Some(42), interpreter.pop());
     }
 
     #[test]
