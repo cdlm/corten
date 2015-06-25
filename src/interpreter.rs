@@ -23,7 +23,7 @@ impl<'a, 'b, T: 'b> Interpreter<'a, 'b, T> where T: FromStr {
         if let Ok(literal) = token.parse::<T>() {
             self.push(literal);
         } else {
-            if let Some(&word) = self.vocabulary.get(token) {
+            if let Some(&word) = self.lookup(token) {
                 word.eval_within(self);
             }
         }
