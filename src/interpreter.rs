@@ -1,14 +1,15 @@
 use std::str::FromStr;
+use std::collections::HashMap;
 
 type Stack<T> = Vec<T>;
 
 #[derive(Default)]
-pub struct Interpreter<T> {
+pub struct Interpreter<'a, T> {
     data_stack: Stack<T>,
+    vocabulary: HashMap<&'a str, Word<T>>,
 }
 
-impl<T> Interpreter<T>
-    where T: FromStr {
+impl<'a, T> Interpreter<'a, T> where T: FromStr {
 
     fn push(&mut self, value: T) {
         self.data_stack.push(value)
@@ -22,6 +23,14 @@ impl<T> Interpreter<T>
         if let Ok(literal) = token.parse::<T>() {
             self.push(literal);
         }
+    }
+
+    fn define_word(&mut self, name: &str, word: &Word<T>) {
+
+    }
+
+    fn lookup(&self, token: &str) -> Option<&Word<T>> {
+        self.vocabulary.get(token)
     }
 }
 
@@ -49,6 +58,17 @@ mod tests {
                 } else { panic!("Stack underflow") }
             })
         }
+    }
+
+    #[test]
+    fn register_word() {
+        let mut interpreter = Interpreter::<i32>::default();
+        let plus = fixture_plus();
+        interpreter.define_word("+", &plus);
+        interpreter.push(51);
+        interpreter.push(42);
+        interpreter.eval_token("+");
+        assert_eq!(Some(93), interpreter.pop())
     }
 
     #[test]
