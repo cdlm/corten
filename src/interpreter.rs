@@ -43,8 +43,8 @@ struct Word<T> {
 }
 
 impl<T> Word<T> {
-    fn eval_within(&self, mut i: &mut Interpreter<T>) {
-      (self.entry)(&mut i)
+    fn eval_within(&self, i: &mut Interpreter<T>) {
+      (self.entry)(i)
     }
 }
 
