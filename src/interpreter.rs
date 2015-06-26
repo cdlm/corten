@@ -33,7 +33,7 @@ impl<'a, 'b, T: 'b> Interpreter<'a, 'b, T> where T: FromStr {
         self.vocabulary.insert(name, word);
     }
 
-    fn lookup(&self, token: &str) -> Option<&&Word<T>> {
+    fn lookup(&self, token: &str) -> Option<&&'b Word<T>> {
         self.vocabulary.get(token)
     }
 }
