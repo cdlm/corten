@@ -66,7 +66,7 @@ mod tests {
 
     #[test]
     fn register_word() {
-        let plus = fixture_plus();
+        let plus = fixture_plus(); // FIXME needs to have longer lifetime than the interpreter…
         let mut interpreter = Interpreter::<i32>::default();
         interpreter.define_word("+", &plus);
         interpreter.push(51);
