@@ -19,6 +19,12 @@ impl<'a, 'b, T: 'b> Interpreter<'a, 'b, T> where T: FromStr {
         self.data_stack.pop()
     }
 
+    fn parse(&mut self, input: &str) {
+        for token in input.split_whitespace() {
+            self.eval_token(token)
+        }
+    }
+
     fn eval_token(&mut self, token: &str) {
         if let Ok(literal) = token.parse::<T>() {
             self.push(literal);
@@ -76,7 +82,18 @@ mod tests {
     }
 
     #[test]
-    fn eval_several_words() {
+    fn eval_expression() {
+        let plus = fixture_plus();
+        let dup = fixture_dup();
+        let mut interpreter = Interpreter::<i32>::default();
+        interpreter.define_word("+", &plus);
+        interpreter.define_word("dup", &dup);
+        interpreter.parse("2 3 + dup +");
+        assert_eq!(Some(10), interpreter.pop())
+    }
+
+    #[test]
+    fn eval_successive_words() {
         let plus = fixture_plus();
         let dup = fixture_dup();
         let mut interpreter = Interpreter::<i32>::default();
