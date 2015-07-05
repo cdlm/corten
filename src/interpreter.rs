@@ -64,6 +64,30 @@ mod tests {
         }
     }
 
+    fn fixture_dup() -> Word<i32> {
+        Word {
+            entry: Box::new(|ref mut i| {
+                if let Some(x) = i.pop() {
+                    i.push(x);
+                    i.push(x);
+                } else { panic!("Stack underflow") }
+            })
+        }
+    }
+
+    #[test]
+    fn eval_several_words() {
+        let plus = fixture_plus();
+        let dup = fixture_dup();
+        let mut interpreter = Interpreter::<i32>::default();
+        interpreter.define_word("+", &plus);
+        interpreter.define_word("dup", &dup);
+        interpreter.eval_token("2");
+        interpreter.eval_token("dup");
+        interpreter.eval_token("+");
+        assert_eq!(Some(4), interpreter.pop())
+    }
+
     #[test]
     fn register_word() {
         let plus = fixture_plus(); // FIXME needs to have longer lifetime than the interpreter…
