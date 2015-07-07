@@ -1,15 +1,16 @@
 use std::str::FromStr;
 use std::collections::HashMap;
+use std::rc::Rc;
 
 type Stack<T> = Vec<T>;
 
 #[derive(Default)]
-pub struct Interpreter<'a, 'b, T: 'b> {
+pub struct Interpreter<'a, T> {
     data_stack: Stack<T>,
-    vocabulary: HashMap<&'a str, &'b Word<T>>,
+    vocabulary: HashMap<&'a str, Rc<Word<T>>>,
 }
 
-impl<'a, 'b, T: 'b> Interpreter<'a, 'b, T> where T: FromStr {
+impl<'a, T> Interpreter<'a, T> where T: FromStr {
 
     fn push(&mut self, value: T) {
         self.data_stack.push(value)
@@ -29,18 +30,20 @@ impl<'a, 'b, T: 'b> Interpreter<'a, 'b, T> where T: FromStr {
         if let Ok(literal) = token.parse::<T>() {
             self.push(literal);
         } else {
-            if let Some(&word) = self.lookup(token) {
+            if let Some(word) = self.lookup(token) {
                 word.eval_within(self);
             }
         }
     }
 
-    fn define_word(&mut self, name: &'a str, word: &'b Word<T>) {
+    fn define_word(&mut self, name: &'a str, word: Rc<Word<T>>) {
         self.vocabulary.insert(name, word);
     }
 
-    fn lookup(&self, token: &str) -> Option<&&'b Word<T>> {
-        self.vocabulary.get(token)
+    fn lookup(&self, token: &str) -> Option<Rc<Word<T>>> {
+        if let Some(word) = self.vocabulary.get(token) {
+            Some(word.clone())
+        } else { None }
     }
 }
 
@@ -59,46 +62,44 @@ impl<T> Word<T> {
 mod tests {
     use super::*;
     use super::Word;
+    use std::rc::Rc;
 
-    fn fixture_plus() -> Word<i32> {
-        Word {
+    fn fixture_plus() -> Rc<Word<i32>> {
+        Rc::new(Word {
             entry: Box::new(|ref mut i| {
                 if let (Some(b), Some(a)) = (i.pop(), i.pop()) {
                     i.push(a + b)
                 } else { panic!("Stack underflow") }
             })
-        }
+        })
     }
 
-    fn fixture_dup() -> Word<i32> {
-        Word {
+    fn fixture_dup() -> Rc<Word<i32>> {
+        Rc::new(Word {
             entry: Box::new(|ref mut i| {
                 if let Some(x) = i.pop() {
                     i.push(x);
                     i.push(x);
                 } else { panic!("Stack underflow") }
             })
-        }
+        })
     }
 
     #[test]
-    fn eval_expression() {
-        let plus = fixture_plus();
-        let dup = fixture_dup();
+    fn eval_interleaved_expressions() {
         let mut interpreter = Interpreter::<i32>::default();
-        interpreter.define_word("+", &plus);
-        interpreter.define_word("dup", &dup);
-        interpreter.parse("2 3 + dup +");
+        interpreter.parse("2 3");
+        interpreter.define_word("+", fixture_plus());
+        interpreter.define_word("dup", fixture_dup());
+        interpreter.parse("+ dup +");
         assert_eq!(Some(10), interpreter.pop())
     }
 
     #[test]
     fn eval_successive_words() {
-        let plus = fixture_plus();
-        let dup = fixture_dup();
         let mut interpreter = Interpreter::<i32>::default();
-        interpreter.define_word("+", &plus);
-        interpreter.define_word("dup", &dup);
+        interpreter.define_word("+", fixture_plus());
+        interpreter.define_word("dup", fixture_dup());
         interpreter.eval_token("2");
         interpreter.eval_token("dup");
         interpreter.eval_token("+");
@@ -107,9 +108,8 @@ mod tests {
 
     #[test]
     fn register_word() {
-        let plus = fixture_plus(); // FIXME needs to have longer lifetime than the interpreter…
         let mut interpreter = Interpreter::<i32>::default();
-        interpreter.define_word("+", &plus);
+        interpreter.define_word("+", fixture_plus());
         interpreter.push(51);
         interpreter.push(42);
         interpreter.eval_token("+");
