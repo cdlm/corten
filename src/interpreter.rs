@@ -41,6 +41,7 @@ impl<'a, T> Interpreter<'a, T> where T: FromStr {
     }
 
     fn lookup(&self, token: &str) -> Option<Rc<Word<T>>> {
+        // what's supposed to happen with undefined words?
         if let Some(word) = self.vocabulary.get(token) {
             Some(word.clone())
         } else { None }
@@ -48,12 +49,13 @@ impl<'a, T> Interpreter<'a, T> where T: FromStr {
 }
 
 struct Word<T> {
-    entry: Box<Fn(&mut Interpreter<T>) -> ()>,
+    entry: Box<Fn(&Word<T>, &mut Interpreter<T>) -> ()>,
+    definition: Vec<Rc<Word<T>>>, // should be Weak, but it's unstable
 }
 
 impl<T> Word<T> {
     fn eval_within(&self, i: &mut Interpreter<T>) {
-      (self.entry)(i)
+      (self.entry)(self, i)
     }
 }
 
@@ -66,23 +68,46 @@ mod tests {
 
     fn fixture_plus() -> Rc<Word<i32>> {
         Rc::new(Word {
-            entry: Box::new(|ref mut i| {
+            entry: Box::new(|ref w, ref mut i| {
                 if let (Some(b), Some(a)) = (i.pop(), i.pop()) {
                     i.push(a + b)
                 } else { panic!("Stack underflow") }
-            })
+            }),
+            definition: vec![],
         })
     }
 
     fn fixture_dup() -> Rc<Word<i32>> {
         Rc::new(Word {
-            entry: Box::new(|ref mut i| {
+            entry: Box::new(|ref w, ref mut i| {
                 if let Some(x) = i.pop() {
                     i.push(x);
                     i.push(x);
                 } else { panic!("Stack underflow") }
-            })
+            }),
+            definition: vec![],
         })
+    }
+
+    #[test]
+    fn user_word() {
+        let mut interpreter = Interpreter::<i32>::default();
+        interpreter.define_word("+", fixture_plus());
+        interpreter.define_word("dup", fixture_dup());
+        let double = Rc::new(Word {
+            entry: Box::new(|ref w, ref mut i| {
+                for subw in &w.definition {
+                    subw.eval_within(i);
+                }
+            }), // FIXME needs access to the word itself
+            definition: vec![
+                interpreter.lookup("dup").expect("duh").clone(),
+                interpreter.lookup("+").expect("duh").clone(),
+                ],
+        });
+        interpreter.define_word("double", double);
+        interpreter.parse("2 double");
+        assert_eq!(Some(4), interpreter.pop());
     }
 
     #[test]
